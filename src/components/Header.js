@@ -1,68 +1,161 @@
 import styled from "styled-components";
-import {auth, provider, signInWithPopup} from '../firebase';
+import { auth, provider, signInWithPopup } from "../firebase";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import {
+  selectUserName,
+  selectUserEmail,
+  setUserLoginDetails,
+  selectUserPhoto,
+  setSignOutState,
+} from "../features/user/userSlice";
+import { useEffect } from "react";
 
 const Header = (props) => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const username = useSelector(selectUserName);
+  const email = useSelector(selectUserEmail);
+  const photo = useSelector(selectUserPhoto);
 
-    const handleAuth = () => {
-        signInWithPopup(auth, provider).then((result)=>{
-            console.log(result)
-        }).catch((err)=>{
-            alert('GAAND PHAT GAYA: ' + err.message);
-        })
+  useEffect(() => {
+    auth.onAuthStateChanged(async (user) => {
+      setUser(user);
+      navigate("/home");
+    });
+  }, [username]);
+
+  const setUser = (user) => {
+    dispatch(
+      setUserLoginDetails({
+        name: user.displayName,
+        email: user.name,
+        photo: user.photoURL,
+      })
+    );
+  };
+
+  const handleAuth = () => {
+    if(!username){
+    signInWithPopup(auth, provider)
+      .then((result) => {
+        setUser(result.user);
+      })
+      .catch((err) => {
+        alert(err.message);
+      });
     }
+    else if(username) {
+      auth.signOut().then(()=>{
+        dispatch(setSignOutState())
+        navigate('/')
+      })
+    }
+  };
 
   return (
     <Nav>
       <Logo>
         <img src="/images/logo.svg" alt="Disney" />
       </Logo>
-      <NavMenu>
-        <a href="/home">
-          <img src="/images/home-icon.svg" alt="HOME" />
-          <span>HOME</span>
-        </a>
-        <a>
-          <img src="/images/search-icon.svg" alt="SEARCH" />
-          <span>SEARCH</span>
-        </a>
-        <a>
-          <img src="/images/watchlist-icon.svg" alt="WATCHLIST" />
-          <span>WATCHLIST</span>
-        </a>
-        <a>
-          <img src="/images/original-icon.svg" alt="ORIGINAL" />
-          <span>ORIGINAL</span>
-        </a>
-        <a>
-          <img src="/images/movie-icon.svg" alt="MOVIE" />
-          <span>MOVIES</span>
-        </a>
-        <a>
-          <img src="/images/series-icon.svg" alt="SERIES" />
-          <span>SERIES</span>
-        </a>
-      </NavMenu>
-      <Login onClick={handleAuth}>Login</Login>
+      {!username ? (
+        <Login onClick={handleAuth}>Login</Login>
+      ) : (
+        <>
+          <NavMenu>
+            <a href="/home">
+              <img src="/images/home-icon.svg" alt="HOME" />
+              <span>HOME</span>
+            </a>
+            <a>
+              <img src="/images/search-icon.svg" alt="SEARCH" />
+              <span>SEARCH</span>
+            </a>
+            <a>
+              <img src="/images/watchlist-icon.svg" alt="WATCHLIST" />
+              <span>WATCHLIST</span>
+            </a>
+            <a>
+              <img src="/images/original-icon.svg" alt="ORIGINAL" />
+              <span>ORIGINAL</span>
+            </a>
+            <a>
+              <img src="/images/movie-icon.svg" alt="MOVIE" />
+              <span>MOVIES</span>
+            </a>
+            <a>
+              <img src="/images/series-icon.svg" alt="SERIES" />
+              <span>SERIES</span>
+            </a>
+          </NavMenu>
+          <SignOut>
+            <UserImg src={photo} alt={username} />
+            <DropDown>
+              <span onClick={handleAuth}>Sign Out</span>
+            </DropDown>
+          </SignOut>
+        </>
+      )}
     </Nav>
   );
 };
 
-const Login = styled.a`
-    background-color: rgb(0,0,0,0.6);
-    padding: 8px 16px;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    border-radius: 4px;
-    border: 1px solid #f9f9f9;
-    transition: all .2s ease-out 0s;
+const DropDown = styled.div`
+  position: absolute;
+  top: 48px;
+  right: 0px;
+  background-color: rgb(19,19,10);
+  border: 1px solid rgba(151,151,151,0.34);
+  border-radius: 4px;
+  box-shadow: rgb(0 0 0/50%) 0px 0px 18px 0px;
+  padding: 10px;
+  font-size: 14px;
+  letter-spacing: 3px;
+  width: 105px;
+  opacity: 0;
+`;
 
-    &:hover{
-        background-color: #f9f9f9;
-        color: #000;
-        cursor: pointer;
-        border-color: transparent;
+const SignOut = styled.div`
+  position: relative;
+  height: 48px;
+  width: 48px;
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition-duration: 1s;
+
+  &:hover{
+    ${DropDown} {
+      opacity: 1;
+      transition-duration: 1s;
     }
-`
+  }
+`;
+
+const UserImg = styled.img`
+  height: 100%;
+  border-radius: 50%;
+  width: 100%;
+  height: 100%;
+`;
+
+const Login = styled.a`
+  background-color: rgb(0, 0, 0, 0.6);
+  padding: 8px 16px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  border-radius: 4px;
+  border: 1px solid #f9f9f9;
+  transition: all 0.2s ease-out 0s;
+
+  &:hover {
+    background-color: #f9f9f9;
+    color: #000;
+    cursor: pointer;
+    border-color: transparent;
+  }
+`;
 
 const Logo = styled.a`
   padding: 0;
@@ -131,9 +224,9 @@ const NavMenu = styled.div`
 
     &:hover {
       span:before {
-          transform: scaleX(1);
-          visibility: visible;
-          opacity: 1;
+        transform: scaleX(1);
+        visibility: visible;
+        opacity: 1;
       }
     }
   }
